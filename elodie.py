@@ -54,7 +54,6 @@ def import_file(_file, destination, album_from_folder, trash, allow_duplicates):
             _file, destination))
         return
 
-
     media = Media.get_class_by_file(_file, get_all_subclasses())
     if not media:
         log.warn('Not a supported file (%s)' % _file)
@@ -171,6 +170,7 @@ def _generate_db(source, debug):
     for current_file in FILESYSTEM.get_all_files(source):
         result.append((current_file, True))
         db.add_hash(db.checksum(current_file), current_file)
+        db.add_phash(db.phash(current_file), current_file)
         log.progress()
     
     db.update_hash_db()

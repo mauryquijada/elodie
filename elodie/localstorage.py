@@ -5,12 +5,15 @@ from builtins import map
 from builtins import object
 
 import hashlib
+import imagehash
 import json
 import os
+import pickle
 import sys
 
 from math import radians, cos, sqrt
 from shutil import copyfile
+from PIL import Image
 from time import strftime
 
 from elodie import constants
@@ -58,6 +61,31 @@ class Db(object):
             except ValueError:
                 pass
 
+        # If the phash db doesn't exist we create it.
+        # Otherwise we only open for reading
+        if not os.path.isfile(constants.phash_db):
+            with open(constants.phash_db, 'a'):
+                os.utime(constants.phash_db, None)
+
+        self.phash_db = {}
+
+        # We know from above that this file exists so we open it
+        #   for reading only.
+        if not os.path.getsize(constants.phash_db) == 0:  # Only unpickle if file isn't empty.
+            with open(constants.phash_db, 'rb') as f:
+                self.phash_db = pickle.load(f)
+
+    def add_phash(self, key, value, write=False):
+        """Add a phash to the phash db.
+
+        :param str key:
+        :param str value:
+        :param bool write: If true, write the hash db to disk.
+        """
+        self.phash_db[key] = value
+        if(write is True):
+            self.update_hash_db()
+
     def add_hash(self, key, value, write=False):
         """Add a hash to the hash db.
 
@@ -97,9 +125,15 @@ class Db(object):
         """Backs up the hash db."""
         if os.path.isfile(constants.hash_db):
             mask = strftime('%Y-%m-%d_%H-%M-%S')
-            backup_file_name = '%s-%s' % (constants.hash_db, mask)
-            copyfile(constants.hash_db, backup_file_name)
-            return backup_file_name
+            hash_backup_file_name = '%s-%s' % (constants.hash_db, mask)
+            copyfile(constants.hash_db, hash_backup_file_name)
+
+        if os.path.isfile(constants.phash_db):
+            mask = strftime('%Y-%m-%d_%H-%M-%S')
+            phash_backup_file_name = '%s-%s' % (constants.phash_db, mask)
+            copyfile(constants.phash_db, phash_backup_file_name)
+            
+        return hash_backup_file_name
 
     def check_hash(self, key):
         """Check whether a hash is present for the given key.
@@ -108,6 +142,14 @@ class Db(object):
         :returns: bool
         """
         return key in self.hash_db
+
+    def check_phash(self, key):
+        """Check whether a phash is present for the given key.
+
+        :param str key:
+        :returns: bool
+        """
+        return key in self.phash_db
 
     def checksum(self, file_path, blocksize=65536):
         """Create a hash value for the given file.
@@ -129,6 +171,17 @@ class Db(object):
             return hasher.hexdigest()
         return None
 
+    def phash(self, file_path):
+        """Create a phash value for the given file.
+
+        :param str file_path: Path to the file to create a hash for.
+        :returns: str or None
+        """
+        with open(file_path, 'rb') as f, Image.open(f) as img:
+            img_hash = imagehash.phash(img, hash_size=constants.hash_size)
+            return img_hash    
+        
+
     def get_hash(self, key):
         """Get the hash value for a given key.
 
@@ -137,6 +190,16 @@ class Db(object):
         """
         if(self.check_hash(key) is True):
             return self.hash_db[key]
+        return None
+
+    def get_phash(self, key):
+        """Get the phash value for a given key.
+
+        :param str key:
+        :returns: str or None
+        """
+        if(self.check_phash(key) is True):
+            return self.phash_db[key]
         return None
 
     def get_location_name(self, latitude, longitude, threshold_m):
@@ -193,11 +256,15 @@ class Db(object):
 
     def reset_hash_db(self):
         self.hash_db = {}
+        self.phash_db = {}
 
     def update_hash_db(self):
         """Write the hash db to disk."""
         with open(constants.hash_db, 'w') as f:
             json.dump(self.hash_db, f)
+
+        with open(constants.phash_db, 'wb') as f:
+            pickle.dump(self.phash_db, f)
 
     def update_location_db(self):
         """Write the location db to disk."""

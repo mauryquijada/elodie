@@ -511,6 +511,15 @@ class FileSystem(object):
                 ))
         return checksum
 
+    def process_phash(self, _file):
+        db = Db()
+        phash = db.phash(_file)
+        if(phash is None):
+            log.info('Could not get phash for %s.' % _file)
+            return None
+
+        return phash
+
     def process_file(self, _file, destination, media, **kwargs):
         move = False
         if('move' in kwargs):
@@ -530,6 +539,12 @@ class FileSystem(object):
         checksum = self.process_checksum(_file, allow_duplicate)
         if(checksum is None):
             log.info('Original checksum returned None for %s. Skipping...' %
+                     _file)
+            return
+
+        phash = self.process_phash(_file)
+        if(phash is None):
+            log.info('Perceptual hash returned None for %s. Skipping...' %
                      _file)
             return
 
@@ -593,6 +608,7 @@ class FileSystem(object):
 
         db = Db()
         db.add_hash(checksum, dest_path)
+        db.add_phash(phash, dest_path)
         db.update_hash_db()
 
         # Run `after()` for every loaded plugin and if any of them raise an exception

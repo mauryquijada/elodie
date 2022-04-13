@@ -22,6 +22,11 @@ hash_db = '{}/hash.json'.format(application_directory)
 #: File in which to store geolocation details about media Elodie has seen.
 location_db = '{}/location.json'.format(application_directory)
 
+#: File in which to store the perceptual hashes for media Elodie has seen.
+phash_db = '{}/phash.pickle'.format(application_directory)
+
+hash_size = 8
+
 #: Elodie installation directory.
 script_directory = path.dirname(path.dirname(path.abspath(__file__)))
 
