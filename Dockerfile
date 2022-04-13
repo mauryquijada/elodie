@@ -1,9 +1,9 @@
-FROM debian:jessie
+FROM debian:bullseye-20220328
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends ca-certificates libimage-exiftool-perl python2.7 python-pip python-pyexiv2 wget make && \
+    apt-get install -y --no-install-recommends ca-certificates libimage-exiftool-perl python3.10 python3-pip wget make && \
     pip install --upgrade pip setuptools && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
@@ -18,11 +18,6 @@ RUN apt-get update -qq && \
 ENV LANG C.UTF-8
 ENV LANGUAGE C.UTF-8
 ENV LC_ALL C.UTF-8
-
-RUN wget http://www.sno.phy.queensu.ca/~phil/exiftool/Image-ExifTool-10.20.tar.gz && \
-    gzip -dc Image-ExifTool-10.20.tar.gz  | tar -xf - && \
-    cd Image-ExifTool-10.20 && perl Makefile.PL && \
-    make install && cd ../ && rm -r Image-ExifTool-10.20
 
 COPY requirements.txt /opt/elodie/requirements.txt
 COPY docs/requirements.txt /opt/elodie/docs/requirements.txt
